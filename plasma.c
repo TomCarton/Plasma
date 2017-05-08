@@ -13,6 +13,8 @@ static const int kHeight = 240;
 
 static const int kUpscale = 2;
 
+static int gColorScheme = 0;
+
 
 void renderPlasma(uint32_t *pixels)
 {
@@ -24,24 +26,38 @@ void renderPlasma(uint32_t *pixels)
 
             float time = ticks * 0.002;
 
-            float u = -0.5f + (float)x / kWidth;
-            float v = -0.5f + (float)y / kHeight;
-
-            float v1 = sinf(u * 10 + time);
-            float v2 = sinf(25 * (u * sinf(time / 3) + v * cosf(time / 7)) + time);
-
+            float u = (((float)x / kWidth) - 0.5f) * 1.5f;
+            float v = (((float)y / kHeight) - 0.5f) * 1.5f;
             float cu = u + 0.5f * sinf(time / 5);
             float cv = v + 0.5f * cosf(time / 9);
 
-            float v3 = sinf(sqrtf(200*(cu * cu + cv * cv) + 1) + time);
+            float v1 = sinf(u * 10 + time);
+            float v2 = sinf(25 * (u * sinf(time / 3) + v * cosf(time / 7)) + time);
+            float v3 = sinf(sqrtf(2 * 10 * 10 * (cu * cu + cv * cv) + 1) + time);
 
             float gv = v1 + v2 + v3;
 
-            Uint8 r = 255;
-            Uint8 g = 255 * (0.5f + 0.5f * cosf(gv * M_PI));
-            Uint8 b = 255 * (0.5f + 0.5f * sinf(gv * M_PI));
+            Uint8 ic = 255 * (0.5f + 0.5f * cosf(gv * M_PI / 2));
+            Uint8 is = 255 * (0.5f + 0.5f * sinf(gv * M_PI / 3));
 
-            pixels[y * kWidth + x] = r << 16 | g << 8 | b;
+            switch (gColorScheme)
+            {
+                case 0:
+                    pixels[y * kWidth + x] = 255 << 16 | ic << 8 | is;
+                    break;
+
+                case 1:
+                    pixels[y * kWidth + x] = ic << 16 | is << 8;
+                    break;
+
+                case 2:
+                    pixels[y * kWidth + x] = is << 8 | ic;
+                    break;
+
+                case 3:
+                    pixels[y * kWidth + x] = ic << 16 | is << 8 | 255;
+                    break;
+            }
         }
     }
 }
@@ -73,10 +89,26 @@ int main(int argc, char ** argv)
         {
             switch (event.type)
             {
-//                case SDL_KEYDOWN:
                 case SDL_QUIT:
                 {
                     quit = true;
+                    break;
+                }
+
+                case SDL_KEYDOWN:
+                {
+                    switch(event.key.keysym.sym)
+                    {
+                        case SDLK_ESCAPE:
+                            quit = true;
+                            break;
+
+                        case SDLK_c:
+                            if (++gColorScheme > 3)
+                                gColorScheme = 0;
+                            break;
+                    }
+
                     break;
                 }
             }
