@@ -13,19 +13,18 @@ static const int kHeight = 240;
 
 static const int kUpscale = 2;
 
+static const unsigned int kProfileCount = 100;
+
 static int gPlasmaSpeed = 1;
 static int gColorScheme = 0;
 
 
-void renderPlasma(uint32_t *pixels)
+void renderPlasma(float time, uint32_t *pixels, unsigned int width, unsigned int height)
 {
-    for (int x = 0; x < kWidth; ++x)
+    for (int y = 0; y < height; ++y)
     {
-        for (int y = 0; y < kHeight; ++y)
-        {
-            uint32_t ticks = SDL_GetTicks();
-
-            float time = ticks * gPlasmaSpeed * 0.001;
+	    for (int x = 0; x < width; ++x)
+    	{
 
             float u = (((float)x / kWidth) - 0.5f) * 1.5f;
             float v = (((float)y / kHeight) - 0.5f) * 1.5f;
@@ -68,6 +67,28 @@ void renderPlasma(uint32_t *pixels)
     }
 }
 
+float profile(uint32_t *buffer)
+{
+    uint32_t t0 = SDL_GetTicks();
+
+    for (unsigned int k = 0; k < kProfileCount; ++k)
+    {
+		renderPlasma(0, buffer, kWidth, kHeight);
+    }
+
+    uint32_t t = SDL_GetTicks() - t0;
+
+	return (float)t / kProfileCount;
+}
+
+void toggleFullscreen(SDL_Window *window)
+{
+    bool isFullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
+    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
+
+    SDL_ShowCursor(isFullscreen);
+}
+
 int main(int argc, char ** argv)
 {
     SDL_Init(SDL_INIT_VIDEO);
@@ -82,11 +103,12 @@ int main(int argc, char ** argv)
     memset(pixels, 0, kWidth * kHeight * sizeof(uint32_t));
 
     uint32_t time0 = SDL_GetTicks();
+    float framerate;
 
     bool quit = false;
     while (!quit)
     {
-        renderPlasma(pixels);
+        renderPlasma(time0 * gPlasmaSpeed * 0.001, pixels, kWidth, kHeight);
 
         SDL_UpdateTexture(texture, NULL, pixels, kWidth * sizeof(uint32_t));
 
@@ -105,19 +127,31 @@ int main(int argc, char ** argv)
                 {
                     switch(event.key.keysym.sym)
                     {
-                        case SDLK_ESCAPE:
+                        case SDLK_ESCAPE: // quit
                             quit = true;
                             break;
 
-                        case SDLK_s:
-                            if (++gPlasmaSpeed > 5)
-                                gPlasmaSpeed = 1;
+                        case SDLK_f: // toggle fullscreen mode
+                        	toggleFullscreen(window);
                             break;
 
-                        case SDLK_c:
-                            if (++gColorScheme > 4)
-                                gColorScheme = 0;
+                        case SDLK_s: // change speed
+                            if (++gPlasmaSpeed > 5) gPlasmaSpeed = 0;
                             break;
+
+                        case SDLK_c: // change color scheme
+                            if (++gColorScheme > 4) gColorScheme = 0;
+                            break;
+
+                        case SDLK_t: // print framerate
+					        printf("fps: %0.2f\n", framerate);
+
+					        break;
+
+                        case SDLK_p: // profile
+							printf("time taken: %0.2f ms\n", profile(pixels));
+
+    						break;
                     }
 
                     break;
@@ -130,7 +164,7 @@ int main(int argc, char ** argv)
         SDL_RenderPresent(renderer);
 
         uint32_t now = SDL_GetTicks();
-//        printf("fps: %d\n", 1000 / (now - time0));
+        framerate = 1000.f / (now - time0);
         time0 = now;
     }
 
