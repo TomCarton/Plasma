@@ -13,6 +13,7 @@ static const int kHeight = 240;
 
 static const int kUpscale = 2;
 
+static int gPlasmaSpeed = 1;
 static int gColorScheme = 0;
 
 
@@ -24,7 +25,7 @@ void renderPlasma(uint32_t *pixels)
         {
             uint32_t ticks = SDL_GetTicks();
 
-            float time = ticks * 0.002;
+            float time = ticks * gPlasmaSpeed * 0.001;
 
             float u = (((float)x / kWidth) - 0.5f) * 1.5f;
             float v = (((float)y / kHeight) - 0.5f) * 1.5f;
@@ -39,6 +40,7 @@ void renderPlasma(uint32_t *pixels)
 
             Uint8 ic = 255 * (0.5f + 0.5f * cosf(gv * M_PI / 2));
             Uint8 is = 255 * (0.5f + 0.5f * sinf(gv * M_PI / 3));
+            Uint8 is2 = 255 * (0.5f + 0.5f * sinf(gv * M_PI * 2));
 
             switch (gColorScheme)
             {
@@ -56,6 +58,10 @@ void renderPlasma(uint32_t *pixels)
 
                 case 3:
                     pixels[y * kWidth + x] = ic << 16 | is << 8 | 255;
+                    break;
+
+                case 4:
+                    pixels[y * kWidth + x] = is2 << 16 | is2 << 8 | is2;
                     break;
             }
         }
@@ -103,8 +109,13 @@ int main(int argc, char ** argv)
                             quit = true;
                             break;
 
+                        case SDLK_s:
+                            if (++gPlasmaSpeed > 5)
+                                gPlasmaSpeed = 1;
+                            break;
+
                         case SDLK_c:
-                            if (++gColorScheme > 3)
+                            if (++gColorScheme > 4)
                                 gColorScheme = 0;
                             break;
                     }
